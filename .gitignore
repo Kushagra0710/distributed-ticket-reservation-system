@@ -1,0 +1,18 @@
+# Root & IDE
+.vscode/
+.idea/
+*.log
+.DS_Store
+
+# Java / Spring Boot Backend
+**/target/
+**/.mvn/wrapper/maven-wrapper.jar
+**/*.class
+**/*.jar
+
+# React Frontend
+**/node_modules/
+**/dist/
+**/dist-ssr/
+*.local
+.eslintcache
