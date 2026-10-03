@@ -4,8 +4,7 @@ import java.security.Key;
 import java.util.Date;
 
 import org.springframework.stereotype.Component;
-
-import com.google.api.client.util.Value;
+import org.springframework.beans.factory.annotation.Value;
 import com.ticketing.ticket_reservation.constants.ApplicationConstants;
 
 import io.jsonwebtoken.JwtException;

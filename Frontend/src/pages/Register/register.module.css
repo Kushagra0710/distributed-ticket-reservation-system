@@ -1,0 +1,48 @@
+.pageWrapper {
+    @apply flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8;
+}
+
+.formContainer {
+    @apply w-full max-w-md space-y-8 rounded-xl bg-white p-10 shadow-lg;
+}
+
+.title {
+    @apply mt-6 text-center text-3xl font-bold tracking-tight text-gray-900;
+}
+
+.errorMessage {
+    @apply rounded-md bg-red-50 p-4 text-sm text-red-700 border border-red-200 text-center;
+}
+
+.fieldError {
+    color: #b91c1c;
+    font-size: 0.875rem;
+}
+
+.form {
+    @apply mt-8 space-y-6;
+}
+
+.inputGroup {
+    @apply flex flex-col space-y-1;
+}
+
+.inputGroup label {
+    @apply text-sm font-medium text-gray-700;
+}
+
+.inputGroup input {
+    @apply block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm;
+}
+
+.submitButton {
+    @apply relative flex w-full justify-center rounded-md bg-blue-600 py-2.5 px-3 text-sm font-semibold text-white hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:bg-blue-300;
+}
+
+.footerText {
+    @apply mt-6 text-center text-sm text-gray-600;
+}
+
+.link {
+    @apply font-medium text-blue-600 hover:text-blue-500;
+}

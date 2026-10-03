@@ -1,122 +1,88 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
 import './App.css'
+import { useAuth } from './context/AuthContext'
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import Login from './pages/Login/login'
+import Register from './pages/Register/register'
+import AdminLayout from './pages/Admin/adminLayout'
+import ManageAdmins from './pages/Admin/ManageAdmins'
 
-function App() {
-  const [count, setCount] = useState(0)
+const AdminDashboard = () => (
+  <div className="p-8">
+    <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+    <p className="mt-2">Welcome to the admin panel.</p>
+  </div>
+);
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+const ProtectedRoute = ({children, requireAdmin = false})=> {
+  const { user } = useAuth();
+  if(!user) return <Navigate to="/login" replace/>
+  if(requireAdmin && user.role !== 'ADMIN') return <Navigate to="/dashboard" replace/>
+  return children ;
 }
 
-export default App
+const GuestRoute = ({children}) => {
+  const { user } = useAuth();
+  if(user) return <Navigate to={user.role === 'ADMIN' ? '/admin' : '/dashboard'} replace/>
+  return children;
+}
+
+const Dashboard = () => {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', {replace: true});
+  };
+
+  return (
+    <main className="p-8">
+      <p>Welcome to the Dashboard!</p>
+      <button
+        type="button"
+        className="mt-4 rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+        onClick={handleLogout}
+      >
+        Log out
+      </button>
+    </main>
+  );
+};
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/login" element={<GuestRoute><Login/></GuestRoute>}/>
+        <Route path="/register" element={<GuestRoute><Register/></GuestRoute>}/>
+
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <AdminLayout/>
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<AdminDashboard />} />
+          <Route path="users" element={<ManageAdmins />} />
+          <Route path="movies" element={<div>Movie Management</div>} />
+          <Route path="venues" element={<div>Venue Management</div>} />
+        </Route>
+
+        <Route 
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard/>
+            </ProtectedRoute>
+          }
+        />
+      
+          <Route path="*" element={<Navigate to = "/login" replace />}/>
+      </Routes>
+    </Router>
+  );
+}
+
+export default App;

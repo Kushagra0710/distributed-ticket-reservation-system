@@ -8,13 +8,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ticketing.ticket_reservation.constants.ApplicationConstants;
+import com.ticketing.ticket_reservation.dto.ApiResponse;
 import com.ticketing.ticket_reservation.dto.AuthRequest;
 import com.ticketing.ticket_reservation.dto.AuthResponse;
 import com.ticketing.ticket_reservation.dto.GoogleAuthRequest;
+import com.ticketing.ticket_reservation.dto.RegisterRequest;
 import com.ticketing.ticket_reservation.service.interfaces.AuthService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping(ApplicationConstants.AUTH_BASE_URL)
@@ -24,9 +28,10 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping(ApplicationConstants.REGISTER_URL)
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody AuthRequest request) {
-        AuthResponse response = authService.register(request);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    public ResponseEntity<ApiResponse> register(@Valid @RequestBody RegisterRequest request) {
+        authService.register(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(new ApiResponse(true, "Registration successful. Please sign in.", Map.of()));
     }
 
     @PostMapping(ApplicationConstants.LOGIN_URL)

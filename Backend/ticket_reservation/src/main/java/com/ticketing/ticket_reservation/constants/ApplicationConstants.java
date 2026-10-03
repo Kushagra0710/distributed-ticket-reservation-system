@@ -8,4 +8,7 @@ public class ApplicationConstants {
     public static final String REGISTER_URL="/register";
     public static final String LOGIN_URL="/login";
     public static final String GOOGLE = "/google";
+
+    public static final String ADMIN_URL="/admin";
+    public static final String ADMIN_USER="/users";
 }

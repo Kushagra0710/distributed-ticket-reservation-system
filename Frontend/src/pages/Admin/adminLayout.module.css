@@ -1,0 +1,39 @@
+.layoutContainer {
+    @apply flex h-screen w-full bg-gray-50 overflow-hidden;
+}
+
+.sidebar {
+    @apply w-64 bg-gray-900 text-white flex flex-col shadow-xl z-20;
+}
+
+.brand {
+    @apply text-2xl font-bold p-6 border-b border-gray-800 tracking-wider;
+}
+
+.nav {
+    @apply flex-1 px-4 py-6 space-y-2 overflow-y-auto;
+}
+
+.navLink {
+    @apply block px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors duration-200 font-medium;
+}
+
+.mainWrapper {
+    @apply flex-1 flex flex-col h-screen overflow-hidden;
+}
+
+.topbar {
+    @apply h-16 bg-white shadow-sm flex items-center justify-end px-8 z-10 border-b border-gray-200;
+}
+
+.userInfo {
+    @apply flex items-center space-x-6 text-sm font-medium text-gray-700;
+}
+
+.logoutBtn {
+    @apply px-4 py-2 bg-red-50 text-red-700 rounded-md hover:bg-red-100 transition-colors duration-200 font-semibold;
+}
+
+.content {
+    @apply flex-1 overflow-y-auto p-8;
+}

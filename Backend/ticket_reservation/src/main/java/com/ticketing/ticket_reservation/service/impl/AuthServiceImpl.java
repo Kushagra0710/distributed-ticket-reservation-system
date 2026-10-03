@@ -15,11 +15,13 @@ import com.ticketing.ticket_reservation.constants.ApplicationConstants;
 import com.ticketing.ticket_reservation.dto.AuthRequest;
 import com.ticketing.ticket_reservation.dto.AuthResponse;
 import com.ticketing.ticket_reservation.dto.GoogleAuthRequest;
+import com.ticketing.ticket_reservation.dto.RegisterRequest;
 import com.ticketing.ticket_reservation.entity.AuthProvider;
 import com.ticketing.ticket_reservation.entity.Role;
 import com.ticketing.ticket_reservation.entity.User;
 import com.ticketing.ticket_reservation.repository.UserRepository;
 import com.ticketing.ticket_reservation.security.JwtUtils;
+import com.ticketing.ticket_reservation.exception.EmailAlreadyRegisteredException;
 import com.ticketing.ticket_reservation.service.interfaces.AuthService;
 
 import lombok.RequiredArgsConstructor;
@@ -37,28 +39,20 @@ public class AuthServiceImpl implements AuthService{
 
     @Override 
     @Transactional 
-    public AuthResponse register(AuthRequest request){
-        if(userRepository.existsByEmail(request.getEmail())){
-            throw new IllegalArgumentException("Email is already registered"+ request.getEmail());
+    public void register(RegisterRequest request){
+        String email = request.getEmail().trim();
+        if(userRepository.existsByEmail(email)){
+            throw new EmailAlreadyRegisteredException("Email is already registered");
         }
 
-        User user = User.builder().fullName(request.getFullName() != null ? request.getFullName() : "Standard User" )
-                    .email(request.getEmail())
+        User user = User.builder().fullName(request.getFullName().trim())
+                    .email(email)
                     .password(passwordEncoder.encode(request.getPassword()))
                     .role(Role.USER)
                     .provider(AuthProvider.LOCAL)
                     .build();
 
         userRepository.save(user);
-
-        String token = jwtUtils.generateToken(user.getEmail(),user.getRole().name());
-
-        return AuthResponse.builder()
-                .token(token)
-                .tokenType(ApplicationConstants.TOKEN_PREFIX.trim())
-                .email(user.getEmail())
-                .role(user.getRole().name())
-                .build();
     }
 
     @Override 
@@ -79,8 +73,7 @@ public class AuthServiceImpl implements AuthService{
         String token = jwtUtils.generateToken(user.getEmail(),user.getRole().name());
 
         return AuthResponse.builder()
-                .token(token)
-                .tokenType(ApplicationConstants.TOKEN_PREFIX.trim())
+                .userName(user.getFullName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
                 .build();
@@ -122,8 +115,7 @@ public class AuthServiceImpl implements AuthService{
 
             String jwt = jwtUtils.generateToken(user.getEmail(),user.getRole().name());
             return AuthResponse.builder()
-                        .token(jwt)
-                        .tokenType(ApplicationConstants.TOKEN_PREFIX.trim())
+                        .userName(user.getFullName())
                         .email(user.getEmail())
                         .role(user.getRole().name())
                         .build();
