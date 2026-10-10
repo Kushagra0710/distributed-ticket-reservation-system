@@ -18,10 +18,10 @@ export default function AdminLayout(){
                 <div className={styles.brand}>TicketAdmin</div>
                 <nav className={styles.nav}>
                     <Link to="/admin" className={styles.navLink}>Dashboard</Link>
-                    <Link to="/admin/movies" className={styles.navLink}>Movies</Link>
-                    <Link to="/admin/events" className={styles.navLink}>Events</Link>
+                    <Link to="/admin/events" className={styles.navLink}>Event Catalog</Link>
+                    <Link to="/admin/showings" className={styles.navLink}>Showtimes</Link>
                     <Link to="/admin/venues" className={styles.navLink}>Venues</Link>
-                    <Link to="/admin/users" className={styles.navLink}>Manage Admins</Link>
+                    <Link to="/admin/users" className={styles.navLink}>Admin &amp; Owners</Link>
                 </nav>
             </aside>
 

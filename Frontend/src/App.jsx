@@ -1,10 +1,16 @@
 import './App.css'
 import { useAuth } from './context/AuthContext'
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, Link } from 'react-router-dom'
 import Login from './pages/Login/login'
 import Register from './pages/Register/register'
 import AdminLayout from './pages/Admin/adminLayout'
 import ManageAdmins from './pages/Admin/ManageAdmins'
+import ManageVenues from './pages/Admin/ManageVenues'
+import ManageVenueSpaces from './pages/Admin/ManageVenueSpaces'
+import ManageEvents from './pages/Admin/ManageEvents'
+import ManageEventCatalog from './pages/Admin/ManageEventCatalog'
+import OwnerLayout from './pages/Owner/OwnerLayout'
+import EventDiscovery from './pages/Customer/EventDiscovery'
 
 const AdminDashboard = () => (
   <div className="p-8">
@@ -13,16 +19,17 @@ const AdminDashboard = () => (
   </div>
 );
 
-const ProtectedRoute = ({children, requireAdmin = false})=> {
+const ProtectedRoute = ({children, requireAdmin = false, requireOwner = false})=> {
   const { user } = useAuth();
   if(!user) return <Navigate to="/login" replace/>
   if(requireAdmin && user.role !== 'ADMIN') return <Navigate to="/dashboard" replace/>
+  if(requireOwner && user.role !== 'OWNER') return <Navigate to={user.role === 'ADMIN' ? '/admin' : '/dashboard'} replace/>
   return children ;
 }
 
 const GuestRoute = ({children}) => {
   const { user } = useAuth();
-  if(user) return <Navigate to={user.role === 'ADMIN' ? '/admin' : '/dashboard'} replace/>
+  if(user) return <Navigate to={user.role === 'ADMIN' ? '/admin' : user.role === 'OWNER' ? '/owner' : '/dashboard'} replace/>
   return children;
 }
 
@@ -38,6 +45,9 @@ const Dashboard = () => {
   return (
     <main className="p-8">
       <p>Welcome to the Dashboard!</p>
+    <Link to="/events" className="mt-4 inline-block rounded bg-gray-900 px-4 py-2 text-white hover:bg-gray-800">
+      Browse events
+    </Link>
       <button
         type="button"
         className="mt-4 rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700"
@@ -53,6 +63,8 @@ function App() {
   return (
     <Router>
       <Routes>
+        <Route path="/" element={<EventDiscovery/>}/>
+        <Route path="/events" element={<EventDiscovery/>}/>
         <Route path="/login" element={<GuestRoute><Login/></GuestRoute>}/>
         <Route path="/register" element={<GuestRoute><Register/></GuestRoute>}/>
 
@@ -66,8 +78,24 @@ function App() {
         >
           <Route index element={<AdminDashboard />} />
           <Route path="users" element={<ManageAdmins />} />
-          <Route path="movies" element={<div>Movie Management</div>} />
-          <Route path="venues" element={<div>Venue Management</div>} />
+          <Route path="movies" element={<ManageEventCatalog/>} />
+          <Route path="events" element={<ManageEventCatalog/>} />
+          <Route path="showings" element={<ManageEvents/>} />
+          <Route path="venues" element={<ManageVenues/>} />
+          <Route path="venues/:venueId/spaces" element={<ManageVenueSpaces/>} />
+        </Route>
+
+        <Route
+          path="/owner"
+          element={
+            <ProtectedRoute requireOwner={true}>
+              <OwnerLayout/>
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<ManageVenues/>} />
+          <Route path="showings" element={<ManageEvents/>} />
+          <Route path="venues/:venueId/spaces" element={<ManageVenueSpaces/>} />
         </Route>
 
         <Route 

@@ -9,6 +9,9 @@ public class ApplicationConstants {
     public static final String LOGIN_URL="/login";
     public static final String GOOGLE = "/google";
 
-    public static final String ADMIN_URL="/admin";
+    public static final String ADMIN_URL="/api/admin";
     public static final String ADMIN_USER="/users";
+    public static final String STATUS="/status";
+    public static final String VENUE="/venue";
+    public static final String DELETE="/delete";
 }

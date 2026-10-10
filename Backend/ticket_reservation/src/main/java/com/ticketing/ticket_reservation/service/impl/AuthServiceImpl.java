@@ -3,6 +3,7 @@ package com.ticketing.ticket_reservation.service.impl;
 import java.util.Collections;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,21 +59,25 @@ public class AuthServiceImpl implements AuthService{
     @Override 
     @Transactional (readOnly = true)
     public AuthResponse login(AuthRequest request){
-        User user = userRepository.findByEmail(request.getEmail())
-                    .orElseThrow(()-> new IllegalArgumentException("Invalid email or password"));
+        User user = userRepository.findByEmail(request.getEmail().trim())
+                    .orElseThrow(()-> new BadCredentialsException("Invalid email or password"));
+        if (!user.isActive()) {
+            throw new BadCredentialsException("This account is disabled.");
+        }
 
         //Guard against Google users trying to login with a local password
         if(user.getProvider()==AuthProvider.GOOGLE){
-            throw new IllegalArgumentException("This account uses Google Sign-In. Please log in with Google.");
+            throw new BadCredentialsException("This account uses Google Sign-In. Please log in with Google.");
         }
 
         if(!passwordEncoder.matches(request.getPassword(),user.getPassword())){
-            throw new IllegalArgumentException("Invalid email or password");
+            throw new BadCredentialsException("Invalid email or password");
         }
 
         String token = jwtUtils.generateToken(user.getEmail(),user.getRole().name());
 
         return AuthResponse.builder()
+            .token(token)
                 .userName(user.getFullName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
@@ -90,7 +95,7 @@ public class AuthServiceImpl implements AuthService{
             
             GoogleIdToken idToken = verifier.verify(request.getIdToken());
             if(idToken == null){
-                throw new IllegalArgumentException("Invalid or expired Google ID token");
+                throw new BadCredentialsException("Invalid or expired Google ID token");
             }
 
             GoogleIdToken.Payload payload = idToken.getPayload();
@@ -109,17 +114,24 @@ public class AuthServiceImpl implements AuthService{
                     return userRepository.save(newUser);
             });
 
+            if (!user.isActive()) {
+                throw new BadCredentialsException("This account is disabled.");
+            }
+
             if(user.getProvider()==AuthProvider.LOCAL){
-                throw new IllegalArgumentException("Email already registered. Please log in with your password.");
+                throw new EmailAlreadyRegisteredException("Email already registered. Please log in with your password.");
             }
 
             String jwt = jwtUtils.generateToken(user.getEmail(),user.getRole().name());
             return AuthResponse.builder()
+                        .token(jwt)
                         .userName(user.getFullName())
                         .email(user.getEmail())
                         .role(user.getRole().name())
                         .build();
 
+        }catch(BadCredentialsException | EmailAlreadyRegisteredException e){
+            throw e;
         }catch(IllegalArgumentException e){
             throw e;
         }catch(Exception e){

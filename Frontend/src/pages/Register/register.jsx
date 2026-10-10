@@ -2,6 +2,7 @@ import { useState } from "react";
 import {useAuth} from '../../context/AuthContext'
 import styles from './register.module.css'
 import {useNavigate,Link} from 'react-router-dom'
+import { getApiErrorMessage, showToast } from '../../context/toastService'
 
 const validateFullName = (value) => {
     if (!value.trim()) return 'Name is required.';
@@ -61,7 +62,9 @@ export default function Register(){
             if (responseErrors) {
                 setErrors((currentErrors) => ({...currentErrors, ...responseErrors}));
             }
-            setError(err.response?.data?.message || 'Registration failed. Please try again.')
+            const message = getApiErrorMessage(err, 'Registration failed. Please try again.');
+            setError(message);
+            showToast(message);
         }
     };
 

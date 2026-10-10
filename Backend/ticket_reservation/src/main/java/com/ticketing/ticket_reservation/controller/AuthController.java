@@ -1,5 +1,7 @@
 package com.ticketing.ticket_reservation.controller;
 
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,8 +19,6 @@ import com.ticketing.ticket_reservation.service.interfaces.AuthService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping(ApplicationConstants.AUTH_BASE_URL)

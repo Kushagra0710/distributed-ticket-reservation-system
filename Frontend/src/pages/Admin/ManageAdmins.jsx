@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import api from "../../api/axiosClient";
+import { getApiErrorMessage, showToast } from "../../context/toastService";
 
 
-export default function manageAdmins(){
+export default function ManageAdmins(){
 
     //DATA STATE
     const[admins,setAdmins]=useState([]);
-    const[isLoading, setIsLoading]=useState(false);
-
-
+    const[isLoading, setIsLoading]=useState(true);
     // UI STATE for search and pagination
     const[searchTerm, setSearchTerm]=useState('');
     const[currentPage, setCurrentPage]=useState(1);
@@ -19,34 +18,42 @@ export default function manageAdmins(){
     const[modalState, setModalState]=useState({isOpen: false, mode:'add'}); // add or edit
 
     // form state
-    const[formData, setFormData]=useState({id:'', fullName:'', email:'', phone:''})
+    const[formData,setFormData]=useState({id:'', fullName:'', email:'', phoneNumber:'', role:'ADMIN'})
     const[formStatus, setFormStatus]=useState({type:'', message:''});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const fetchAdmins = async ()=> {
         setIsLoading(true);
         try{
-            const response = await api.get('/admin/users');
+            const response = await api.get('/admin/users/except-current');
             setAdmins(response.data);
         }catch(error){
-            console.error("Failed to fetch Admins", error);
-            setAdmins([
-                {id:1, fullName:'Shukla', email:'admin@system.com',phone:'9748292484',isActive:true},
-                {id:2, fullName:'Abhishek', email:'abhi@lehsun.com',phone:'7238728888',isActive:true},
-            ]);
+            showToast(getApiErrorMessage(error, "Failed to fetch admins."));
         } finally{
             setIsLoading(false);
         }
     };
 
     useEffect(()=>{
-        fetchAdmins();
+        let isActive = true;
+        api.get('/admin/users/except-current')
+            .then(({data}) => {
+                if (isActive) setAdmins(data);
+            })
+            .catch(error => {
+                if (isActive) showToast(getApiErrorMessage(error, "Failed to fetch admins."));
+            })
+            .finally(() => {
+                if (isActive) setIsLoading(false);
+            });
+        return () => { isActive = false; };
     },[]);
 
     const filteredAdmins = admins.filter(admin =>
         (admin.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (admin.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (admin.phone || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (admin.phoneNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (admin.role || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (admin.isActive ? 'active' : 'disabled').includes(searchTerm.toLowerCase())
     );
 
@@ -56,8 +63,6 @@ export default function manageAdmins(){
         currentPage * itemsPerPage
     );
 
-    useEffect(()=>{setCurrentPage(1);},[searchTerm]);
-
     // 3. form handling(open, close,submit)
     const openModal = (mode, admin=null)=>{
         setFormStatus({type:'',message:''});
@@ -65,9 +70,9 @@ export default function manageAdmins(){
         setActiveDropDown(null);
         
         if(mode === 'edit' && admin){
-            setFormData({id:admin.id, fullName:admin.fullName, phone:admin.phone || '', email:admin.email});
+            setFormData({id:admin.id, fullName:admin.fullName, phoneNumber:admin.phoneNumber || '', email:admin.email, role:admin.role || 'ADMIN'});
         }else{
-            setFormData({id:'', fullName:'', email:'', phone:''});
+            setFormData({id:'', fullName:'', email:'', phoneNumber:'', role:'ADMIN'});
         }
     };
 
@@ -80,19 +85,24 @@ export default function manageAdmins(){
 
         try{
             if (modalState.mode==='add'){
-                await api.post('/admin/users',{...formData,role:'ADMIN'});
-                setFormStatus({type:'success', message:'Admin created successfully.'})
+                const createRequest = {...formData};
+                await api.post('/admin/users', createRequest);
+                const accountType = formData.role === 'OWNER' ? 'Owner' : 'Admin';
+                setFormStatus({type:'success', message:`${accountType} account created successfully.`})
+                showToast(`${accountType} account created successfully.`, 'success');
             }else{
-                await api.put(`/admin/users/${formData.id}`,{fullName:formData.fullName, phone:formData.phone});
-                setFormStatus({type:'success',message:'Admin updated successfully.'})
+                await api.put(`/admin/users/${formData.id}`,{fullName:formData.fullName, phoneNumber:formData.phoneNumber});
+                setFormStatus({type:'success',message:'Account updated successfully.'})
+                showToast('Account updated successfully.', 'success');
             }
             fetchAdmins();//refresh table
             setTimeout(closeModal,1000);
         }catch(error){
             setFormStatus({
                 type: 'error',
-                message:error.response?.data?.message || 'Failed to create or update admin.'
+                message:getApiErrorMessage(error, 'Failed to create or update account.')
             });
+            showToast(getApiErrorMessage(error, 'Failed to create or update account.'));
         }finally{
             setIsSubmitting(false);
         }
@@ -102,10 +112,11 @@ export default function manageAdmins(){
         setActiveDropDown(null);
         if(window.confirm(`Are you sure you want to ${currentStatus ? 'disable':'enable'} this admin?`)){
             try{
-                await api.patch(`/admin/users/${id}/status`,{isActive: !currentStatus});
-                fetchAdmins();
+                await api.patch(`/admin/users/${id}/status`,{active: !currentStatus});
+                await fetchAdmins();
+                showToast('Admin status updated.', 'success');
             }catch(error){
-                alert("Failed to update status.");
+                showToast(getApiErrorMessage(error, "Failed to update admin status."));
             }
         }
     };
@@ -114,7 +125,7 @@ export default function manageAdmins(){
         <div className="w-full bg-white rounded-xl shadow-sm border border-gray-100 p-6 relative">
             {/* Header & Toolbar */}
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0">
-                <h2 className="text-2xl font-bold text-gray-900">Admin Management</h2>
+                <h2 className="text-2xl font-bold text-gray-900">Admin &amp; Owner Accounts</h2>
             </div>
             
             <div className="flex justify-between items-center mb-6">
@@ -123,13 +134,16 @@ export default function manageAdmins(){
                     placeholder="Search by name or email..."
                     className="w-full md:w-1/3 rounded-md border border-gray-300 px-4 py-2 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setCurrentPage(1);
+                    }}
                 />
                 <button
                     onClick={() => openModal('add')}
                     className="bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors font-medium text-sm"
                 >
-                    + Add Admin
+                    + Add Account
                 </button>
             </div>
 
@@ -141,21 +155,23 @@ export default function manageAdmins(){
                             <th className="px-6 py-3 text-sm font-semibold text-gray-600">Name</th>
                             <th className="px-6 py-3 text-sm font-semibold text-gray-600">Email</th>
                             <th className="px-6 py-3 text-sm font-semibold text-gray-600">Phone</th>
+                            <th className="px-6 py-3 text-sm font-semibold text-gray-600">Role</th>
                             <th className="px-6 py-3 text-sm font-semibold text-gray-600">Status</th>
                             <th className="px-6 py-3 text-sm font-semibold text-gray-600 text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {isLoading ? (
-                            <tr><td colSpan="5" className="text-center py-8 text-gray-500">Loading admins...</td></tr>
+                            <tr><td colSpan="6" className="text-center py-8 text-gray-500">Loading accounts...</td></tr>
                         ) : paginatedAdmins.length === 0 ? (
-                            <tr><td colSpan="5" className="text-center py-8 text-gray-500">No admins found.</td></tr>
+                            <tr><td colSpan="6" className="text-center py-8 text-gray-500">No accounts found.</td></tr>
                         ) : (
                             paginatedAdmins.map((admin) => (
                                 <tr key={admin.id} className="border-b border-gray-100 hover:bg-gray-50">
                                     <td className="px-6 py-4 text-sm text-gray-900 font-medium">{admin.fullName}</td>
                                     <td className="px-6 py-4 text-sm text-gray-600">{admin.email}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-600">{admin.phone || 'N/A'}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-600">{admin.phoneNumber || 'N/A'}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-600">{admin.role}</td>
                                     <td className="px-6 py-4 text-sm">
                                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${admin.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                             {admin.isActive ? 'Active' : 'Disabled'}
@@ -225,7 +241,7 @@ export default function manageAdmins(){
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4">
                     <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative">
                         <button onClick={closeModal} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
-                        <h3 className="text-xl font-bold mb-4">{modalState.mode === 'add' ? 'Add New Admin' : 'Edit Admin'}</h3>
+                        <h3 className="text-xl font-bold mb-4">{modalState.mode === 'add' ? 'Add Account' : 'Edit Account'}</h3>
                         
                         {formStatus.message && (
                             <div className={`p-3 mb-4 rounded-md text-sm ${formStatus.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
@@ -234,6 +250,26 @@ export default function manageAdmins(){
                         )}
 
                         <form onSubmit={handleSubmit} className="space-y-4">
+                            {modalState.mode === 'add' && (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Account role</label>
+                                        <select
+                                            value={formData.role}
+                                            onChange={(e) => setFormData({...formData, role:e.target.value})}
+                                            className="w-full rounded-md border border-gray-300 px-3 py-2"
+                                        >
+                                            <option value="ADMIN">Admin</option>
+                                            <option value="OWNER">Venue owner</option>
+                                        </select>
+                                    </div>
+                                    {formData.role === 'OWNER' && (
+                                        <p className="text-sm text-gray-500">
+                                            A secure initial password will be generated automatically for this owner.
+                                        </p>
+                                    )}
+                                </>
+                            )}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                                 <input
@@ -258,15 +294,15 @@ export default function manageAdmins(){
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
                                 <input
                                     type="tel" required
-                                    value={formData.phone}
-                                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                                    value={formData.phoneNumber}
+                                    onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
                                     className="w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-1 focus:ring-gray-900"
                                 />
                             </div>
                             <div className="flex justify-end space-x-3 mt-6">
                                 <button type="button" onClick={closeModal} className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
                                 <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-gray-900 text-white rounded-md text-sm font-medium hover:bg-gray-800 disabled:opacity-70">
-                                    {isSubmitting ? 'Saving...' : 'Save Admin'}
+                                    {isSubmitting ? 'Saving...' : 'Save Account'}
                                 </button>
                             </div>
                         </form>

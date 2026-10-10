@@ -1,9 +1,24 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {useNavigate,Link,useLocation} from 'react-router-dom';
 import  {useAuth}  from '../../context/AuthContext';
+import { showToast } from '../../context/toastService';
 import styles from './Login.module.css';
 import { GoogleLogin } from "@react-oauth/google";
 
+const getErrorMessage = (error, fallback) => {
+    if (!error.response) {
+        return 'Unable to connect to the server. Check your connection and try again.';
+    }
+
+    const data = error.response.data;
+    if (typeof data === 'string') return data;
+    if (typeof data?.message === 'string') {
+        const details = Object.values(data.errors || {}).filter((value) => typeof value === 'string');
+        return details.length ? `${data.message}: ${details.join(', ')}` : data.message;
+    }
+
+    return fallback;
+};
 
 export default function Login(){
     const [email, setEmail] = useState('');
@@ -11,7 +26,7 @@ export default function Login(){
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const {login, googleLogin, user} = useAuth('');
+    const {login, googleLogin} = useAuth('');
     const navigate = useNavigate();
     const location = useLocation();
     const [successMessage] = useState(location.state?.successMessage || '');
@@ -23,13 +38,11 @@ export default function Login(){
         try{
             await login(email, password);
             const loggedUser = JSON.parse(localStorage.getItem('user') || '{}');
-            navigate(loggedUser.role === 'ADMIN' ? '/admin' : '/dashboard');
+            navigate(loggedUser.role === 'ADMIN' ? '/admin' : loggedUser.role === 'OWNER' ? '/owner' : '/dashboard');
         }catch(err) {
-            setError(
-                err.response?.data?.message || 
-                err.response?.data ||
-                'Failed to log-in, Please check your credentials.'
-            );
+            const message = getErrorMessage(err, 'Sign-in failed. Please check your credentials.');
+            setError(message);
+            showToast(message);
         } finally {
             setLoading(false);
         }
@@ -41,11 +54,9 @@ export default function Login(){
             await googleLogin(credentialResponse.credential);
             navigate('/dashboard');
         }catch(err){
-            setError(
-                err.response?.data?.message ||
-                err.response?.data ||
-                'Google Authentcation Failed.'
-            );
+            const message = getErrorMessage(err, 'Google authentication failed.');
+            setError(message);
+            showToast(message);
         }
     };
 

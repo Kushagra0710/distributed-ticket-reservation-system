@@ -43,6 +43,15 @@ public class JwtUtils {
                     .getSubject();
     }
 
+    public String extractRole(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get(ApplicationConstants.CLAIM_ROLE, String.class);
+    }
+
     public boolean validateToken(String token){
         try{
             Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token);

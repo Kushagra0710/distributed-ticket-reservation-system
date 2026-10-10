@@ -44,6 +44,14 @@ public class User {
     @Enumerated (EnumType.STRING) @Column (nullable=false,name="role") 
     private Role role;
 
+    @Builder.Default
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean active = true;
+
+    @NotBlank
+    @Column(name = "phone_number", nullable = false)
+    private String phoneNumber;
+
     @Column (name="created_at",updatable=false)
     private LocalDateTime createdAt;
 
