@@ -26,7 +26,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.ticketing.ticket_reservation.dto.EventCatalogRequest;
 import com.ticketing.ticket_reservation.dto.EventCatalogResponse;
-import com.ticketing.ticket_reservation.dto.EventDiscoveryResponse;
 import com.ticketing.ticket_reservation.dto.EventPoster;
 import com.ticketing.ticket_reservation.dto.EventPerformanceRequest;
 import com.ticketing.ticket_reservation.dto.EventPriceBandRequest;
@@ -216,18 +215,26 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<EventDiscoveryResponse> getDiscoverableEvents(String city) {
-        LocalDateTime now = LocalDateTime.now();
-        List<Event> upcoming = city == null || city.isBlank()
-            ? eventRepository
-                .findAllByVenue_DeleteFlagFalseAndVenueSpace_DeleteFlagFalseAndCatalogEvent_ActiveTrueAndStartTimeAfterOrderByStartTimeAsc(now)
-            : eventRepository
-                .findAllByVenue_CityIgnoreCaseAndVenue_DeleteFlagFalseAndVenueSpace_DeleteFlagFalseAndCatalogEvent_ActiveTrueAndStartTimeAfterOrderByStartTimeAsc(
-                    city.trim(), now);
+    public List<EventCatalogResponse> getDiscoverableEvents(String city) {
+        if (city == null || city.isBlank()) {
+            return List.of();
+        }
+        return catalogRepository.findDiscoverableEventsByCity(city.trim(), LocalDateTime.now()).stream()
+            .map(this::toCatalogResponse)
+            .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ShowingResponse> getDiscoverableShowings(Long eventId, String city) {
+        if (city == null || city.isBlank()) {
+            throw new IllegalArgumentException("City is required to find event showings.");
+        }
+        List<Event> upcoming = eventRepository.findUpcomingShowingsForCatalogEvent(
+            eventId, city.trim(), LocalDateTime.now());
         if (upcoming.isEmpty()) {
             return List.of();
         }
-
         List<Long> showingIds = upcoming.stream().map(Event::getId).toList();
         Map<Long, List<EventPriceBandResponse>> bandsByShowing = new HashMap<>();
         priceBandRepository.findAllByEvent_IdInOrderByIdAsc(showingIds).forEach(band ->
@@ -235,32 +242,16 @@ public class EventServiceImpl implements EventService {
                 .add(toPriceBandResponse(band))
         );
 
-        Map<Long, List<ShowingResponse>> showingsByCatalogEvent = new HashMap<>();
-        Map<Long, EventCatalog> catalogEvents = new HashMap<>();
-        for (Event showing : upcoming) {
-            EventCatalog catalogEvent = showing.getCatalogEvent();
-            catalogEvents.put(catalogEvent.getId(), catalogEvent);
-            showingsByCatalogEvent.computeIfAbsent(catalogEvent.getId(), ignored -> new ArrayList<>())
-                .add(toShowingResponse(showing, bandsByShowing.getOrDefault(showing.getId(), List.of())));
-        }
-
-        return catalogEvents.values().stream()
-            .sorted(Comparator.comparing(EventCatalog::getTitle, String.CASE_INSENSITIVE_ORDER))
-            .map(event -> new EventDiscoveryResponse(
-                event.getId(),
-                event.getTitle(),
-                event.getDescription(),
-                event.getPosterUrl(),
-                event.getDurationMinutes(),
-                showingsByCatalogEvent.get(event.getId())
-            ))
+        return upcoming.stream()
+            .map(showing -> toShowingResponse(
+                showing, bandsByShowing.getOrDefault(showing.getId(), List.of())))
             .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<String> getEventCities() {
-        return venueRepository.findDistinctCityByDeleteFlagFalseOrderByCityAsc();
+        return venueRepository.findAvailableCities();
     }
 
     private void applyCatalogRequest(

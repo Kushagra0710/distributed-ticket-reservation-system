@@ -10,8 +10,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.ticketing.ticket_reservation.dto.EventDiscoveryResponse;
+import com.ticketing.ticket_reservation.dto.EventCatalogResponse;
 import com.ticketing.ticket_reservation.dto.EventPoster;
+import com.ticketing.ticket_reservation.dto.ShowingResponse;
 import com.ticketing.ticket_reservation.service.interfaces.EventService;
 
 import lombok.RequiredArgsConstructor;
@@ -22,9 +23,16 @@ public class EventDiscoveryController {
     private final EventService eventService;
 
     @GetMapping("/api/events")
-    public ResponseEntity<List<EventDiscoveryResponse>> getEvents(
+    public ResponseEntity<List<EventCatalogResponse>> getEvents(
             @RequestParam(required = false) String city) {
         return ResponseEntity.ok(eventService.getDiscoverableEvents(city));
+    }
+
+    @GetMapping("/api/events/{id}/showings")
+    public ResponseEntity<List<ShowingResponse>> getShowings(
+            @PathVariable Long id,
+            @RequestParam String city) {
+        return ResponseEntity.ok(eventService.getDiscoverableShowings(id, city));
     }
 
     @GetMapping("/api/events/cities")

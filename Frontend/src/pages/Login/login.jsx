@@ -38,7 +38,7 @@ export default function Login(){
         try{
             await login(email, password);
             const loggedUser = JSON.parse(localStorage.getItem('user') || '{}');
-            navigate(loggedUser.role === 'ADMIN' ? '/admin' : loggedUser.role === 'OWNER' ? '/owner' : '/dashboard');
+            navigate(loggedUser.role === 'ADMIN' ? '/admin' : loggedUser.role === 'OWNER' ? '/owner' : '/events');
         }catch(err) {
             const message = getErrorMessage(err, 'Sign-in failed. Please check your credentials.');
             setError(message);
@@ -52,7 +52,8 @@ export default function Login(){
         setError('');
         try{
             await googleLogin(credentialResponse.credential);
-            navigate('/dashboard');
+            const loggedUser = JSON.parse(localStorage.getItem('user') || '{}');
+            navigate(loggedUser.role === 'ADMIN' ? '/admin' : loggedUser.role === 'OWNER' ? '/owner' : '/events');
         }catch(err){
             const message = getErrorMessage(err, 'Google authentication failed.');
             setError(message);

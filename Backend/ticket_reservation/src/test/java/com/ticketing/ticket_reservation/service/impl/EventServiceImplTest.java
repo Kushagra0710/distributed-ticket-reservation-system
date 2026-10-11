@@ -286,7 +286,22 @@ class EventServiceImplTest {
     }
 
     @Test
-    void discoveryGroupsShowingsAcrossVenuesUnderOneCatalogEvent() {
+    void cityDiscoveryReturnsCatalogEventsOnly() {
+        when(catalogRepository.findDiscoverableEventsByCity(
+            Mockito.eq("Pune"), any(LocalDateTime.class)))
+            .thenReturn(List.of(catalogEvent));
+
+        var events = eventService.getDiscoverableEvents(" Pune ");
+
+        assertEquals(1, events.size());
+        assertEquals("Drishyam", events.get(0).title());
+        assertEquals("https://cdn.example.test/drishyam.jpg", events.get(0).posterUrl());
+        verify(eventRepository, never()).findUpcomingShowingsForCatalogEvent(
+            Mockito.anyLong(), Mockito.anyString(), any(LocalDateTime.class));
+    }
+
+    @Test
+    void eventDetailsFetchShowingsForTheSelectedCity() {
         Venue secondVenue = new Venue();
         secondVenue.setId(4L);
         secondVenue.setName("Riverside Cinema");
@@ -296,17 +311,16 @@ class EventServiceImplTest {
         Event firstShowing = showing(21L, venue, space);
         Event secondShowing = showing(22L, secondVenue, secondSpace);
         when(eventRepository
-            .findAllByVenue_CityIgnoreCaseAndVenue_DeleteFlagFalseAndVenueSpace_DeleteFlagFalseAndCatalogEvent_ActiveTrueAndStartTimeAfterOrderByStartTimeAsc(
-                Mockito.eq("Pune"), any(LocalDateTime.class)))
+            .findUpcomingShowingsForCatalogEvent(
+                Mockito.eq(9L), Mockito.eq("Pune"), any(LocalDateTime.class)))
             .thenReturn(List.of(firstShowing, secondShowing));
         when(priceBandRepository.findAllByEvent_IdInOrderByIdAsc(anyList())).thenReturn(List.of());
 
-        var events = eventService.getDiscoverableEvents(" Pune ");
+        var showings = eventService.getDiscoverableShowings(9L, " Pune ");
 
-        assertEquals(1, events.size());
-        assertEquals("Drishyam", events.get(0).title());
-        assertEquals(2, events.get(0).showings().size());
-        assertEquals("https://cdn.example.test/drishyam.jpg", events.get(0).posterUrl());
+        assertEquals(2, showings.size());
+        assertEquals("Grand Theatre", showings.get(0).venueName());
+        assertEquals("Riverside Cinema", showings.get(1).venueName());
     }
 
     private Event showing(Long id, Venue showingVenue, VenueSpace showingSpace) {

@@ -6,7 +6,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.ticketing.ticket_reservation.dto.EventCatalogRequest;
 import com.ticketing.ticket_reservation.dto.EventCatalogResponse;
-import com.ticketing.ticket_reservation.dto.EventDiscoveryResponse;
 import com.ticketing.ticket_reservation.dto.EventPoster;
 import com.ticketing.ticket_reservation.dto.ShowingsCreateRequest;
 import com.ticketing.ticket_reservation.dto.ShowingResponse;
@@ -19,6 +18,7 @@ public interface EventService {
     void deleteEvent(Long id);
     List<ShowingResponse> getShowings();
     List<ShowingResponse> createShowings(ShowingsCreateRequest request);
-    List<EventDiscoveryResponse> getDiscoverableEvents(String city);
+    List<EventCatalogResponse> getDiscoverableEvents(String city);
+    List<ShowingResponse> getDiscoverableShowings(Long eventId, String city);
     List<String> getEventCities();
 }
